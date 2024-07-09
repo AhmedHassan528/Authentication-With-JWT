@@ -15,11 +15,13 @@ namespace Authentication_With_JWT.Services
     public class AuthService : IAuthService
     {
         private readonly UserManager<AppUser> _userManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
         private readonly JWT _jwt;
 
-        public AuthService(UserManager<AppUser> usMan, IOptions<JWT> jwt)
+        public AuthService(UserManager<AppUser> usMan, RoleManager<IdentityRole> roleManager, IOptions<JWT> jwt)
         {
             _userManager = usMan;
+            _roleManager = roleManager;
             _jwt = jwt.Value;
 
         }
@@ -63,6 +65,47 @@ namespace Authentication_With_JWT.Services
                 Username = user.UserName,
                 Roles = new List<string> { "User" }
             };
+        }
+        public async Task<AuthModel> LoginAsync(LoginModel model)
+        {
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            if (user is null || !await _userManager.CheckPasswordAsync(user, model.Password))
+            {
+                return new AuthModel { Message = "Email or password is incorrect" };
+            }
+            var jwtSecurityToken = await CreateJwtToken(user);
+
+            var roles = await _userManager.GetRolesAsync(user);
+            return new AuthModel
+            {
+                IsAuthenticated = true,
+                Email = user.Email,
+                ExpiresOn = jwtSecurityToken.ValidTo,
+                Token = new JwtSecurityTokenHandler().WriteToken(jwtSecurityToken),
+                Username = user.UserName,
+                Roles = roles.ToList()
+            };
+
+        }
+
+        public async Task<string> AddRoleAsync(AddRoleModel model)
+        {
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            if(user is null || user.Id != model.Userid)
+                return "User id or email are incorrect";
+
+            if(!await _roleManager.RoleExistsAsync(model.Role))
+                return "Role does not exist";
+
+            if(await _userManager.IsInRoleAsync(user, model.Role))
+                return "User already has this role";
+
+            var result = await _userManager.AddToRoleAsync(user, model.Role);
+
+            if (!result.Succeeded)
+                return "Role did not add Some thing error";
+
+            return string.Empty;
         }
 
         private async Task<JwtSecurityToken> CreateJwtToken(AppUser user)
