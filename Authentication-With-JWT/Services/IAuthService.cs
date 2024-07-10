@@ -1,4 +1,5 @@
-﻿using Authentication_With_JWT.Models;
+﻿
+using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.BlazorIdentity.Pages.Manage;
 
 namespace Authentication_With_JWT.Services
 {
@@ -7,6 +8,8 @@ namespace Authentication_With_JWT.Services
         Task<AuthModel> RegisterAsync(RegisterModel model);
         Task<AuthModel> LoginAsync(LoginModel model);
         Task<string> AddRoleAsync(AddRoleModel model);
+        Task<string> ConfirmEmail(string userId, string token);
+        Task<string> ForgotPasswordConfermationModel (ForgotPasswordConfermationModel model);
 
 
     }

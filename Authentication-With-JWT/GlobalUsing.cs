@@ -2,3 +2,4 @@
 global using Microsoft.AspNetCore.Identity;
 global using Authentication_With_JWT.Models;
 global using Authentication_With_JWT.Services;
+global using Authentication_With_JWT.Setting;

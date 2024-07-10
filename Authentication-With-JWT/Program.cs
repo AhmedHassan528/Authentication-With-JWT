@@ -9,8 +9,10 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 var configuration = builder.Configuration;
 builder.Services.Configure<JWT>(configuration.GetSection("JWT"));
+builder.Services.Configure<MailSettings>(configuration.GetSection("MailSettings"));
 
-builder.Services.AddIdentity<AppUser, IdentityRole>().AddEntityFrameworkStores<ApplicationDbContext>();
+
+builder.Services.AddIdentity<AppUser, IdentityRole>().AddEntityFrameworkStores<ApplicationDbContext>().AddDefaultTokenProviders();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
@@ -39,6 +41,7 @@ builder.Services.AddAuthentication(op =>
     });
 
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ISendMail, SendMail>();
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

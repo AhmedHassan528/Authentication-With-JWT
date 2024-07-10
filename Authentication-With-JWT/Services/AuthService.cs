@@ -1,8 +1,4 @@
 ﻿
-
-using Authentication_With_JWT.Helper;
-using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.DotNet.Scaffolding.Shared.Messaging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -15,11 +11,13 @@ namespace Authentication_With_JWT.Services
     public class AuthService : IAuthService
     {
         private readonly UserManager<AppUser> _userManager;
+        private readonly ISendMail _sendMail;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly JWT _jwt;
 
-        public AuthService(UserManager<AppUser> usMan, RoleManager<IdentityRole> roleManager, IOptions<JWT> jwt)
+        public AuthService(UserManager<AppUser> usMan, ISendMail sendMail, RoleManager<IdentityRole> roleManager, IOptions<JWT> jwt)
         {
+            _sendMail = sendMail;
             _userManager = usMan;
             _roleManager = roleManager;
             _jwt = jwt.Value;
@@ -42,6 +40,15 @@ namespace Authentication_With_JWT.Services
             };
 
             var result = await _userManager.CreateAsync(user, model.Password);
+
+            // Send Email
+            try
+            {
+                var EmailSend = await _sendMail.SendEmailAsync(model.Email, "Confirmation Your Account","", "ConfirmEmail");
+            }catch(Exception ex)
+            {
+                return new AuthModel { Message = ex.Message };
+            }
 
             if (!result.Succeeded)
             {
@@ -107,6 +114,44 @@ namespace Authentication_With_JWT.Services
 
             return string.Empty;
         }
+
+
+        public async Task<string> ConfirmEmail(string userId, string token)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            token = token.Replace(" ", "+");
+            var result = await _userManager.ConfirmEmailAsync(user, token);
+            if (!result.Succeeded)
+            {
+                return "Email not confirmed";
+            }
+            else
+            {
+                return string.Empty;
+            }
+
+        }
+
+        public async Task<string> ForgotPasswordConfermationModel(ForgotPasswordConfermationModel model)
+        {
+            var user = await _userManager.FindByIdAsync(model.userId);
+            if (model.userId == null || model.token == null)
+            {
+                return "Link expired";
+            }
+            else if (user == null)
+            {
+                return "User not Found";
+            }
+            model.token = model.token.Replace(" ", "+");
+            var result = await _userManager.ResetPasswordAsync(user, model.token, model.confirmPassword);
+            if (!result.Succeeded)
+            {
+                return "Password not reset";
+            }
+            return string.Empty;
+        }
+
 
         private async Task<JwtSecurityToken> CreateJwtToken(AppUser user)
         {
